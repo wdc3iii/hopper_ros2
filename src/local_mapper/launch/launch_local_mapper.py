@@ -72,9 +72,20 @@ def generate_launch_description():
         #     arguments=[
         #         "-0.0379023637260937", "-0.193623093443654", "0.101805322541873",
         #         "-0.5607", "-0.7964", "-0.1854", "0.1305",
-        #         "hopper_solid2", "d435"
+        #         "hopper_solid2", "d435ish"
         #     ],
         #     name="static_tf_hopper_solid2_to_d435"
+        # ),
+
+        # Node(
+        #     package="tf2_ros",
+        #     executable="static_transform_publisher",
+        #     arguments=[
+        #         "0", "0", "0",
+        #         "1", "0", "0", "0",
+        #         "d435ish", "d435"
+        #     ],
+        #     name="static_tf_d4345ish_to_d435"
         # ),
 
         Node(
@@ -82,10 +93,10 @@ def generate_launch_description():
             executable="static_transform_publisher",
             arguments=[
                 "0.101805322541873", "-0.03790236372609371", "-0.193623093443654",
-                "0.0903981531845955", "-0.5205893644679247", "-0.14529703161196594", "0.8364829108286959",
+                "0.8364829108286959", "-0.14529703161196594", "0.5205893644679247", "-0.0903981531845955",
                 "hopper", "d435"
             ],
-            name="static_tf_hopper_to_d435"
+            name="static_tf_hopper_to_d435ish"
         ),
 
         # Segmentation Node
