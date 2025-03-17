@@ -31,7 +31,7 @@ class LocalMapperNode(Node):
         # Declare mapping parameters with default values
         self.declare_parameter('map_disc', 0.05)
         self.declare_parameter('map_dim', 200)
-        self.declare_parameter('n_clusters', 5)
+        self.declare_parameter('n_free_spaces', 5)
         self.declare_parameter('init_free_radius', 0.25)
         self.declare_parameter('recenter_thresh', 0.5)
         self.declare_parameter('publish_pc', False)
@@ -42,7 +42,7 @@ class LocalMapperNode(Node):
         self.local_mapper = LocalMapper(
             self.get_parameter('map_disc').value,
             self.get_parameter('map_dim').value,
-            self.get_parameter('n_clusters').value,
+            self.get_parameter('n_free_spaces').value,
             self.get_parameter('init_free_radius').value,
             self.get_parameter('recenter_thresh').value
         )
@@ -154,7 +154,7 @@ class LocalMapperNode(Node):
         # Create header with current timestamp
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
-        header.frame_id = "odom"  # Change to appropriate frame
+        header.frame_id = "odom"
 
         # Convert NumPy array to PointCloud2 message
         cloud_msg = point_cloud2.create_cloud_xyz32(header, self.local_mapper.trav_seg.xyz)

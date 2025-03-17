@@ -1,14 +1,64 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
+    map_disc = DeclareLaunchArgument('map_disc', default_value='0.05', description='Discretization of the map.')
+    map_dim = DeclareLaunchArgument('map_dim', default_value='200', description='Number of cells per dimension on the map.')
+    n_free_spaces = DeclareLaunchArgument('n_free_spaces', default_value='5', description='Number of free spaces to fit to the map.')
+    init_free_radius = DeclareLaunchArgument('init_free_radius', default_value='0.25', description='Radius around robot assumed obstacle free.')
+    recenter_thresh = DeclareLaunchArgument('recenter_thresh', default_value='0.5', description='Distance at which to recenter the map.')
+    publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
+    publish_occ = DeclareLaunchArgument('publish_occ', default_value='false', description='Whether to publish the occupancy grid.')
+
     return LaunchDescription([
-        # Another Node (Example: Some Processing Node)
+        # Launch Parameters
+        map_disc, map_dim, n_free_spaces, init_free_radius, recenter_thresh,
+        publish_pc, publish_occ,
+        # t265 Node
         Node(
             package="realsense_ros2",
             executable="rs_t265_node",
             name="t265_node",
+            output="screen"
+        ),
+        # t265 -> Hopper transform
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            arguments=[
+                "-0.1604", "-0.0954", "-0.0747",
+                "0.7765426942365389", "-0.13685039898430323", "-0.1807761986582881", "0.5878548956369704",
+                "t265_frame", "hopper"
+            ],
+            name="static_tf_t265_to_hopper"
+        ),
+        # Hopper -> d435 transform
+        Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            arguments=[
+                "0.101805322541873", "-0.03790236372609371", "-0.193623093443654",
+                "0.8364829108286959", "-0.14529703161196594", "0.5205893644679247", "-0.0903981531845955",
+                "hopper", "d435"
+            ],
+            name="static_tf_hopper_to_d435"
+        ),
+        # Local Mapper Node
+        Node(
+            package="local_mapper",
+            executable="local_mapper_node",
+            name="loc_map_node",
+            parameters=[{
+                'map_disc': LaunchConfiguration('map_disc'),
+                'map_dim': LaunchConfiguration('map_dim'),
+                'n_free_spaces': LaunchConfiguration('n_free_spaces'),
+                'init_free_radius': LaunchConfiguration('init_free_radius'),
+                'recenter_thresh': LaunchConfiguration('recenter_thresh'),
+                'publish_pc': LaunchConfiguration('publish_pc'),
+                'publish_occ': LaunchConfiguration('publish_occ'),
+            }],
             output="screen"
         ),
 
@@ -44,17 +94,6 @@ def generate_launch_description():
         #     name="static_tf_hopper_solid_to_hopper"
         # ),
 
-        Node(
-            package="tf2_ros",
-            executable="static_transform_publisher",
-            arguments=[
-                "-0.1604", "-0.0954", "-0.0747",
-                "0.7765426942365389", "-0.13685039898430323", "-0.1807761986582881", "0.5878548956369704",
-                "t265_frame", "hopper"
-            ],
-            name="static_tf_t265_to_hopper"
-        ),
-
         # Node(
         #     package="tf2_ros",
         #     executable="static_transform_publisher",
@@ -87,23 +126,4 @@ def generate_launch_description():
         #     ],
         #     name="static_tf_d4345ish_to_d435"
         # ),
-
-        Node(
-            package="tf2_ros",
-            executable="static_transform_publisher",
-            arguments=[
-                "0.101805322541873", "-0.03790236372609371", "-0.193623093443654",
-                "0.8364829108286959", "-0.14529703161196594", "0.5205893644679247", "-0.0903981531845955",
-                "hopper", "d435"
-            ],
-            name="static_tf_hopper_to_d435ish"
-        ),
-
-        # Segmentation Node
-        Node(
-            package="local_mapper",
-            executable="local_mapper_node",
-            name="loc_map_node",
-            output="screen"
-        ),
     ])
