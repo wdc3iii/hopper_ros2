@@ -39,8 +39,8 @@ class LocalMapperNode(Node):
         self.declare_parameter('init_free_radius', 0.25)
         self.declare_parameter('recenter_thresh', 0.5)
         self.declare_parameter('publish_pc', False)
-        self.declare_parameter('publish_occ', True)
-        self.declare_parameter('viz_poly', True)
+        self.declare_parameter('publish_occ', False)
+        self.declare_parameter('viz_poly', False)
 
         # TODO: change startup procedure to segment on another computer.
 
@@ -106,6 +106,7 @@ class LocalMapperNode(Node):
                 return
 
         # Trigger segmentation
+        self.get_logger().info("Image Captured: Ready to segment.")
         self.segmentation_ready.set()
 
         if self.get_parameter('publish_pc').value:
@@ -121,6 +122,7 @@ class LocalMapperNode(Node):
                 self.local_mapper.segment_frame()
 
             # Notify occupancy grid update
+            self.get_logger().info("Frame Segmented: Ready to update grid.")
             self.occupancy_ready.set()
 
             if self.get_parameter('publish_occ').value:
@@ -136,6 +138,7 @@ class LocalMapperNode(Node):
                 self.local_mapper.update_occ_grid(self.pos)
 
             # Notify free-space polytope computation
+            self.get_logger().info("Grid Updated: Ready to fit polytopes.")
             self.polytope_ready.set()
 
     def compute_free_space_polytopes(self):
@@ -200,7 +203,7 @@ class LocalMapperNode(Node):
         marker_array = MarkerArray()
 
         for i, poly in enumerate(self.local_mapper.polytopes):
-            marker = self.create_filled_polygon_marker(poly['vertices'], marker_id=i)
+            marker = self.create_filled_polygon_marker_(poly['vertices'], marker_id=i)
             marker_array.markers.append(marker)
 
         self.poly_viz_pub.publish(marker_array)
@@ -209,7 +212,7 @@ class LocalMapperNode(Node):
     def create_filled_polygon_marker_(self, vertices, marker_id, color=(0.0, 1.0, 0.0, 0.25)):  
         """Creates an RViz marker for a filled polygon using TRIANGLE_LIST"""
         marker = Marker()
-        marker.header.frame_id = "map"  
+        marker.header.frame_id = "odom"  
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = "polygons"
         marker.id = marker_id

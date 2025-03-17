@@ -11,11 +11,12 @@ def generate_launch_description():
     recenter_thresh = DeclareLaunchArgument('recenter_thresh', default_value='0.5', description='Distance at which to recenter the map.')
     publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
     publish_occ = DeclareLaunchArgument('publish_occ', default_value='false', description='Whether to publish the occupancy grid.')
+    viz_poly = DeclareLaunchArgument('viz_poly', default_value='false', description='Whether to visualize the polytopes.')
 
     return LaunchDescription([
         # Launch Parameters
         map_disc, map_dim, n_free_spaces, init_free_radius, recenter_thresh,
-        publish_pc, publish_occ,
+        publish_pc, publish_occ, viz_poly,
         # t265 Node
         Node(
             package="realsense_ros2",
@@ -28,9 +29,9 @@ def generate_launch_description():
             package="tf2_ros",
             executable="static_transform_publisher",
             arguments=[
-                "-0.1604", "-0.0954", "-0.0747",
-                "0.7765426942365389", "-0.13685039898430323", "-0.1807761986582881", "0.5878548956369704",
-                "t265_frame", "hopper"
+                "--x", "-0.1604", "--y", "-0.0954", "--z", "-0.0747",
+                "--qx",  "0.7765426942365389", "--qy",  "-0.13685039898430323", "--qz",  "-0.1807761986582881", "--qw",  "0.5878548956369704",
+                "--frame-id", "t265_frame", "--child-frame-id", "hopper"
             ],
             name="static_tf_t265_to_hopper"
         ),
@@ -39,9 +40,9 @@ def generate_launch_description():
             package="tf2_ros",
             executable="static_transform_publisher",
             arguments=[
-                "0.101805322541873", "-0.03790236372609371", "-0.193623093443654",
-                "0.8364829108286959", "-0.14529703161196594", "0.5205893644679247", "-0.0903981531845955",
-                "hopper", "d435"
+                "--x", "0.101805322541873", "--y", "-0.03790236372609371", "--z", "-0.193623093443654",
+                "--qx",  "0.8364829108286959", "--qy",  "-0.14529703161196594", "--qz",  "0.5205893644679247", "--qw",  "-0.0903981531845955",
+                "--frame-id", "hopper", "--child-frame-id", "d435"
             ],
             name="static_tf_hopper_to_d435"
         ),
@@ -58,6 +59,7 @@ def generate_launch_description():
                 'recenter_thresh': LaunchConfiguration('recenter_thresh'),
                 'publish_pc': LaunchConfiguration('publish_pc'),
                 'publish_occ': LaunchConfiguration('publish_occ'),
+                'viz_poly': LaunchConfiguration('viz_poly'),
             }],
             output="screen"
         ),
