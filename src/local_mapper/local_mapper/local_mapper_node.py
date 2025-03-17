@@ -4,10 +4,14 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
+from geometry_msgs.msg import Point
 from sensor_msgs_py import point_cloud2 
 from sensor_msgs.msg import PointCloud2
 from nav_msgs.msg import OccupancyGrid, MapMetaData
+from visualization_msgs.msg import Marker, MarkerArray
 from tf2_ros import Buffer, TransformListener
+
+from scipy.spatial import Delaunay
 
 from trav_seg.local_mapper import LocalMapper
 from scipy.spatial.transform import Rotation
@@ -36,6 +40,7 @@ class LocalMapperNode(Node):
         self.declare_parameter('recenter_thresh', 0.5)
         self.declare_parameter('publish_pc', False)
         self.declare_parameter('publish_occ', True)
+        self.declare_parameter('viz_poly', True)
 
         # TODO: change startup procedure to segment on another computer.
 
@@ -48,6 +53,8 @@ class LocalMapperNode(Node):
         )
         self.pc_pub = self.create_publisher(PointCloud2, 'd435_pointcloud', 1)
         self.occ_pub = self.create_publisher(OccupancyGrid, 'occ_grid', 1)
+        self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)
+
         # Flags to trigger tasks asynchronously
         self.segmentation_ready = threading.Event()
         self.occupancy_ready = threading.Event()
@@ -144,8 +151,12 @@ class LocalMapperNode(Node):
 
             # TODO: Publish polytopes
 
+            if self.get_parameter('viz_poly').value:
+                self.viz_polytopes_()
+
     def shutdown(self):
         """Graceful shutdown."""
+        self.local_mapper.shutdown()
         self.segmentation_thread.join()
         self.occupancy_thread.join()
         self.polytope_thread.join()
@@ -183,6 +194,42 @@ class LocalMapperNode(Node):
         # Publish
         self.get_logger().info("Publishing occupancy grid.")
         self.occ_pub.publish(grid)
+    
+    def viz_polytopes_(self):
+        """Publishes multiple filled polygon markers as a MarkerArray"""
+        marker_array = MarkerArray()
+
+        for i, poly in enumerate(self.local_mapper.polytopes):
+            marker = self.create_filled_polygon_marker(poly['vertices'], marker_id=i)
+            marker_array.markers.append(marker)
+
+        self.poly_viz_pub.publish(marker_array)
+        self.get_logger().info("Published filled polygons to RViz")
+
+    def create_filled_polygon_marker_(self, vertices, marker_id, color=(0.0, 1.0, 0.0, 0.25)):  
+        """Creates an RViz marker for a filled polygon using TRIANGLE_LIST"""
+        marker = Marker()
+        marker.header.frame_id = "map"  
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.ns = "polygons"
+        marker.id = marker_id
+        marker.type = Marker.TRIANGLE_LIST  # Filled polygon
+        marker.action = Marker.ADD
+        marker.scale.x = marker.scale.y = marker.scale.z = 1.0  
+
+        # Set color (RGBA)
+        marker.color.r, marker.color.g, marker.color.b, marker.color.a = color
+
+        # Triangulate the polygon using Delaunay
+        if len(vertices) >= 3:
+            tri = Delaunay(vertices)
+            for simplex in tri.simplices:
+                for i in simplex:
+                    p = Point(x=float(vertices[i][0]), y=float(vertices[i][1]), z=0.0)
+                    marker.points.append(p)
+
+        return marker
+
 
 
 def main():
