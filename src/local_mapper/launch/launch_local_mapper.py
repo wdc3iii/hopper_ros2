@@ -1,7 +1,8 @@
-from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration
+from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+
 
 def generate_launch_description():
     map_disc = DeclareLaunchArgument('map_disc', default_value='0.05', description='Discretization of the map.')
@@ -12,11 +13,12 @@ def generate_launch_description():
     publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
     publish_occ = DeclareLaunchArgument('publish_occ', default_value='false', description='Whether to publish the occupancy grid.')
     viz_poly = DeclareLaunchArgument('viz_poly', default_value='false', description='Whether to visualize the polytopes.')
+    local_prompt = DeclareLaunchArgument('local_prompt', default_value='false', description='Whether to visualize the polytopes.')
 
     return LaunchDescription([
         # Launch Parameters
         map_disc, map_dim, n_free_spaces, init_free_radius, recenter_thresh,
-        publish_pc, publish_occ, viz_poly,
+        publish_pc, publish_occ, viz_poly, local_prompt,
         # t265 Node
         Node(
             package="realsense_ros2",
@@ -60,72 +62,72 @@ def generate_launch_description():
                 'publish_pc': LaunchConfiguration('publish_pc'),
                 'publish_occ': LaunchConfiguration('publish_occ'),
                 'viz_poly': LaunchConfiguration('viz_poly'),
+                'local_prompt': LaunchConfiguration('local_prompt'),
             }],
             output="screen"
         ),
-
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "0", "0", "0",
-        #         "0.5", "-0.5", "-0.5", "0.5",
-        #         "t265_frame", "t265corrected_frame"
-        #     ],
-        #     name="static_tf_t265_to_t265corrected"
-        # ),
-
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "0.0954", "-0.0747", "0.1604",
-        #         "0.7765427", "0.5878549", "0.1368504", "0.1807762",
-        #         "t265corrected_frame", "hopper_solid"
-        #     ],
-        #     name="static_tf_t265corrected_to_hopper_solid"
-        # ),
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "0", "0", "0",
-        #         "0.5", "0.5", "0.5", "-0.5",
-        #         "hopper_solid", "hopper"
-        #     ],
-        #     name="static_tf_hopper_solid_to_hopper"
-        # ),
-
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "0", "0", "0",
-        #         "-0.5", "-0.5", "-0.5", "-0.5",
-        #         "hopper", "hopper_solid2"
-        #     ],
-        #     name="static_tf_hopper_to_hopper_solid2"
-        # ),
-
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "-0.0379023637260937", "-0.193623093443654", "0.101805322541873",
-        #         "-0.5607", "-0.7964", "-0.1854", "0.1305",
-        #         "hopper_solid2", "d435ish"
-        #     ],
-        #     name="static_tf_hopper_solid2_to_d435"
-        # ),
-
-        # Node(
-        #     package="tf2_ros",
-        #     executable="static_transform_publisher",
-        #     arguments=[
-        #         "0", "0", "0",
-        #         "1", "0", "0", "0",
-        #         "d435ish", "d435"
-        #     ],
-        #     name="static_tf_d4345ish_to_d435"
-        # ),
     ])
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "0", "0", "0",
+#         "0.5", "-0.5", "-0.5", "0.5",
+#         "t265_frame", "t265corrected_frame"
+#     ],
+#     name="static_tf_t265_to_t265corrected"
+# ),
+
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "0.0954", "-0.0747", "0.1604",
+#         "0.7765427", "0.5878549", "0.1368504", "0.1807762",
+#         "t265corrected_frame", "hopper_solid"
+#     ],
+#     name="static_tf_t265corrected_to_hopper_solid"
+# ),
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "0", "0", "0",
+#         "0.5", "0.5", "0.5", "-0.5",
+#         "hopper_solid", "hopper"
+#     ],
+#     name="static_tf_hopper_solid_to_hopper"
+# ),
+
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "0", "0", "0",
+#         "-0.5", "-0.5", "-0.5", "-0.5",
+#         "hopper", "hopper_solid2"
+#     ],
+#     name="static_tf_hopper_to_hopper_solid2"
+# ),
+
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "-0.0379023637260937", "-0.193623093443654", "0.101805322541873",
+#         "-0.5607", "-0.7964", "-0.1854", "0.1305",
+#         "hopper_solid2", "d435ish"
+#     ],
+#     name="static_tf_hopper_solid2_to_d435"
+# ),
+
+# Node(
+#     package="tf2_ros",
+#     executable="static_transform_publisher",
+#     arguments=[
+#         "0", "0", "0",
+#         "1", "0", "0", "0",
+#         "d435ish", "d435"
+#     ],
+#     name="static_tf_d4345ish_to_d435"
+# ),

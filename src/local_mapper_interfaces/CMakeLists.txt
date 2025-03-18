@@ -14,6 +14,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
 set(msg_files
+  "msg/BoolImage.msg"
   "msg/Polytope.msg"
   "msg/PolytopeArray.msg"
   "msg/PromptClickData.msg"
@@ -25,7 +26,7 @@ set(action_files
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
   ${action_files}
-  DEPENDENCIES sensor_msgs
+  DEPENDENCIES sensor_msgs action_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)
 

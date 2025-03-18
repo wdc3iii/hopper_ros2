@@ -2,9 +2,9 @@
 sensor_msgs/Image image
 
 ---
-# Feedback: Updated segmentation mask
-sensor_msgs/Image mask
+# Result: Final segmentation mask
+BoolImage final_mask
 
 ---
-# Result: Final segmentation mask
-sensor_msgs/Image final_mask
+# Feedback: Updated segmentation mask
+BoolImage mask

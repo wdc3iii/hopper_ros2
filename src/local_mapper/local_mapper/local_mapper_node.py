@@ -3,6 +3,7 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
+from cv_bridge import CvBridge
 from std_msgs.msg import Header
 from geometry_msgs.msg import Point
 from sensor_msgs_py import point_cloud2 
@@ -35,6 +36,7 @@ class LocalMapperNode(Node):
         # Shared Data and Locks
         self.pos = None
         self.lock = threading.Lock()
+        self.bridge = CvBridge()
 
         # Declare mapping parameters with default values
         self.declare_parameter('map_disc', 0.05)
@@ -45,13 +47,13 @@ class LocalMapperNode(Node):
         self.declare_parameter('publish_pc', False)
         self.declare_parameter('publish_occ', False)
         self.declare_parameter('viz_poly', False)
+        self.declare_parameter('local_prompt', False)
 
-        # TODO: change startup procedure to segment on another computer.
         self.seg_prompt_server = ActionServer(
             self,
             SegPrompt,
             'seg_prompt',
-            self.seg_prompt_callback
+            self.seg_prompt_server
         )
         self.pub_frame = self.create_publisher(Image, 'd435_image', 1)
         self.latest_clicks = []
@@ -67,7 +69,8 @@ class LocalMapperNode(Node):
             self.get_parameter('map_dim').value,
             self.get_parameter('n_free_spaces').value,
             self.get_parameter('init_free_radius').value,
-            self.get_parameter('recenter_thresh').value
+            self.get_parameter('recenter_thresh').value,
+            local_prompt=self.get_parameter('local_prompt').value
         )
         self.pc_pub = self.create_publisher(PointCloud2, 'd435_pointcloud', 1)
         self.occ_pub = self.create_publisher(OccupancyGrid, 'occ_grid', 1)
@@ -124,9 +127,12 @@ class LocalMapperNode(Node):
                 return
 
         # Trigger segmentation
-        self.get_logger().info("Image Captured: Ready to segment.")
-        self.segmentation_ready.set()
-
+        
+        if self.local_mapper.trav_seg.prompt_completed:
+            self.get_logger().info("Image Captured: Ready to segment.")
+            self.segmentation_ready.set()
+        else:
+            self.get_logger().info("Image Captured: Waiting for segmentation Prompt.")
         if self.get_parameter('publish_pc').value:
             self.publish_pc_()
 
@@ -257,9 +263,15 @@ class LocalMapperNode(Node):
         self.current_goal_handle = goal_handle
 
         # Capture and publish image
-        if self.local_mapper.trav_seg.color_frame is None:
-            self.local_mapper.capture_frame()
-        self.pub_frame.publish(self.local_mapper.trav_seg.color_frame)
+        while self.local_mapper.trav_seg.seg_frame is None:
+            rclpy.spin_once(self, timeout_sec=0.1) 
+        
+        image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.trav_seg.seg_frame, encoding="bgr8")
+        image_msg.header.stamp = self.get_clock().now().to_msg()
+        image_msg.header.frame_id = "d435"
+
+        self.pub_frame.publish(image_msg)
+        self.prompt_idx = self.local_mapper.trav_seg.frame_idx
         self.get_logger().info("Published image for segmentation.")
 
         feedback_msg = SegPrompt.Feedback()
@@ -273,7 +285,7 @@ class LocalMapperNode(Node):
                 return SegPrompt.Result()
             
             # Wait for click data
-            if not self.latest_clicks:
+            while not self.latest_clicks:
                 rclpy.spin_once(self, timeout_sec=0.1)
                 continue
 
@@ -282,11 +294,12 @@ class LocalMapperNode(Node):
                 if ex_prompt_:
                     exit_prompt = ex_prompt_
                     break
-                self.local_mapper.trav_seg.add_prompt(group, label, x, y)
+                self.local_mapper.trav_seg.add_prompt(group, label, x, y, self.prompt_idx)
             self.latest_clicks = []
 
             # Send feedback (updated segmentation mask)
-            feedback_msg.mask = self.local_mapper.trav_seg.all_mask
+            feedback_msg.mask.height, feedback_msg.mask.width, _ = self.local_mapper.trav_seg.all_mask.shape
+            feedback_msg.mask.data = self.local_mapper.trav_seg.all_mask.flatten().tolist()
             goal_handle.publish_feedback(feedback_msg)
 
         self.get_logger().info("Segmentation confirmed, sending final mask.")

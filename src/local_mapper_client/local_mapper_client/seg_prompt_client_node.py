@@ -1,5 +1,6 @@
 import cv2
 import rclpy
+import numpy as np
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from rclpy.action import ActionClient
@@ -7,7 +8,6 @@ from rclpy.action import ActionClient
 from sensor_msgs.msg import Image
 from local_mapper_interfaces.action import SegPrompt
 from local_mapper_interfaces.msg import PromptClickData
-from my_segmentation_interfaces.action import SegmentImage
 
 
 class SegPromptClient(Node):
@@ -57,13 +57,15 @@ class SegPromptClient(Node):
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
     
     def vis_image(self):
-        if self.latest_mask is None:
+        if self.latest_image is None:
+                return
+        if self.latest_mask is None:    
             frame = self.latest_image
         else:
             frame = cv2.addWeighted(
                 self.latest_image,
                 1,
-                cv2.cvtColor(self.latest_mask * 255, cv2.COLOR_GRAY2RGB),
+                cv2.cvtColor((self.latest_mask * 255).astype(np.uint8), cv2.COLOR_GRAY2RGB),
                 0.5,
                 0
             )
@@ -71,13 +73,14 @@ class SegPromptClient(Node):
         key_stroke = cv2.waitKey(1)
         if key_stroke == 13:
             self.exit_prompt = True
-        else:
+        elif key_stroke >= 0 and key_stroke < 256:
+            self.get_logger().info(f"Setting group: {key_stroke}")
             self.curr_group = key_stroke
 
     def mask_callback(self, msg):
         """Displays segmentation mask received from Orin."""
-        self.latest_mask = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        cv2.imshow("Segmentation Mask", self.latest_mask)
+        self.latest_mask = np.array(msg.data).reshape(msg.height, msg.width)
+        self.vis_image()
         cv2.waitKey(1)
 
     def mouse_click_callback(self, event, x, y, flags, param):
@@ -103,9 +106,9 @@ class SegPromptClient(Node):
     
     def send_goal(self):
         """Requests segmentation from the Jetson Orin."""
-        goal_msg = SegmentImage.Goal()
-        self._action_client.wait_for_server()
-        self._send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
+        goal_msg = SegPrompt.Goal()
+        self.seg_prompt_client.wait_for_server()
+        self._send_goal_future = self.seg_prompt_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
@@ -121,14 +124,13 @@ class SegPromptClient(Node):
 
     def feedback_callback(self, feedback_msg):
         """Receives segmentation masks as feedback."""
-        self.mask_callback(feedback_msg.mask)
+        self.mask_callback(feedback_msg.feedback.mask)
 
     def result_callback(self, future):
         """Handles final segmentation result."""
         result = future.result().result
         self.get_logger().info('Segmentation complete.')
-        final_mask = self.bridge.imgmsg_to_cv2(result.final_mask, desired_encoding="bgr8")
-        cv2.imshow("Final Mask", final_mask)
+        self.mask_callback(result.final_mask)
         cv2.waitKey(0)
 
 
