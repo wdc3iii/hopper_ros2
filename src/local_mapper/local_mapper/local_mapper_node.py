@@ -6,11 +6,14 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from geometry_msgs.msg import Point
 from sensor_msgs_py import point_cloud2 
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointCloud2, Image
+from local_mapper_interfaces.msg import PromptClickData
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from visualization_msgs.msg import Marker, MarkerArray
 from tf2_ros import Buffer, TransformListener
 
+from rclpy.action import ActionServer
+from local_mapper_interfaces.action import SegPrompt
 from scipy.spatial import Delaunay
 
 from trav_seg.local_mapper import LocalMapper
@@ -26,7 +29,8 @@ class LocalMapperNode(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # Timer for capturing camera frames and transforms
-        self.timer = self.create_timer(0.1, self.capture_frame)  # 10Hz
+        self.declare_parameter('capture_period', 0.2)
+        self.timer = self.create_timer(self.get_parameter('capture_period').value, self.capture_frame)
 
         # Shared Data and Locks
         self.pos = None
@@ -43,6 +47,20 @@ class LocalMapperNode(Node):
         self.declare_parameter('viz_poly', False)
 
         # TODO: change startup procedure to segment on another computer.
+        self.seg_prompt_server = ActionServer(
+            self,
+            SegPrompt,
+            'seg_prompt',
+            self.seg_prompt_callback
+        )
+        self.pub_frame = self.create_publisher(Image, 'd435_image', 1)
+        self.latest_clicks = []
+        self.sub_click = self.create_subscription(
+            PromptClickData,
+            'seg_prompt_clicks',
+            self.seg_prompt_click_callback,
+            10
+        )
 
         self.local_mapper = LocalMapper(
             self.get_parameter('map_disc').value,
@@ -232,8 +250,55 @@ class LocalMapperNode(Node):
                     marker.points.append(p)
 
         return marker
+    
+    # Server
+    async def seg_prompt_server(self, goal_handle):
+        """Handles segmentation process interactively."""
+        self.current_goal_handle = goal_handle
 
+        # Capture and publish image
+        if self.local_mapper.trav_seg.color_frame is None:
+            self.local_mapper.capture_frame()
+        self.pub_frame.publish(self.local_mapper.trav_seg.color_frame)
+        self.get_logger().info("Published image for segmentation.")
 
+        feedback_msg = SegPrompt.Feedback()
+
+        exit_prompt = False
+        while not exit_prompt:
+            # Check for cancellation
+            if not self.current_goal_handle or self.current_goal_handle.is_cancel_requested:
+                self.get_logger().info("Segmentation canceled.")
+                goal_handle.canceled()
+                return SegPrompt.Result()
+            
+            # Wait for click data
+            if not self.latest_clicks:
+                rclpy.spin_once(self, timeout_sec=0.1)
+                continue
+
+            # Apply prompts
+            for group, label, x, y, ex_prompt_ in self.latest_clicks:
+                if ex_prompt_:
+                    exit_prompt = ex_prompt_
+                    break
+                self.local_mapper.trav_seg.add_prompt(group, label, x, y)
+            self.latest_clicks = []
+
+            # Send feedback (updated segmentation mask)
+            feedback_msg.mask = self.local_mapper.trav_seg.all_mask
+            goal_handle.publish_feedback(feedback_msg)
+
+        self.get_logger().info("Segmentation confirmed, sending final mask.")
+        goal_handle.succeed()
+        return SegPrompt.Result(final_mask=self.local_mapper.trav_seg.all_mask)
+
+    def seg_prompt_click_callback(self, msg):
+        self.latest_clicks.append((msg.group, msg.label, msg.x, msg.y, msg.exit_prompt))
+        if msg.exit_prompt:
+            self.get_logger().info(f"Received exit prompt command.")
+        else:
+            self.get_logger().info(f"Received click at ({msg.x}, {msg.y}) in group {msg.group} with label {msg.label}.")
 
 def main():
     rclpy.init()
