@@ -1,27 +1,25 @@
 import time
-import asyncio
 import threading
 import numpy as np
+from scipy.spatial import Delaunay
+from scipy.spatial.transform import Rotation
 
 import rclpy
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from std_msgs.msg import Header
 from geometry_msgs.msg import Point
+from rclpy.action import ActionServer
 from sensor_msgs_py import point_cloud2 
-from sensor_msgs.msg import PointCloud2, Image
-from local_mapper_interfaces.msg import PromptClickData
-from nav_msgs.msg import OccupancyGrid, MapMetaData
-from visualization_msgs.msg import Marker, MarkerArray
 from tf2_ros import Buffer, TransformListener
+from sensor_msgs.msg import PointCloud2, Image
+from nav_msgs.msg import OccupancyGrid, MapMetaData
+from local_mapper_interfaces.action import SegPrompt
+from visualization_msgs.msg import Marker, MarkerArray
+from local_mapper_interfaces.msg import PromptClickData
 from local_mapper_interfaces.msg import PolytopeArray, Polytope
 
-from rclpy.action import ActionServer
-from local_mapper_interfaces.action import SegPrompt
-from scipy.spatial import Delaunay
-
 from trav_seg.local_mapper import LocalMapper
-from scipy.spatial.transform import Rotation
 
 
 class LocalMapperNode(Node):
@@ -39,7 +37,6 @@ class LocalMapperNode(Node):
 
         # Shared Data and Locks
         self.pos = None
-        self.lock = threading.Lock()
         self.bridge = CvBridge()
 
         # Declare mapping parameters with default values
@@ -98,39 +95,39 @@ class LocalMapperNode(Node):
     def capture_frame(self):
         self.get_logger().info("Capture Frame callback triggered.")
         """Captures a frame and retrieves transform."""
-        with self.lock:
-            try:
-                # Get transform (Replace with real frame IDs)
-                hopper_to_odom = self.tf_buffer.lookup_transform("hopper", "odom", rclpy.time.Time())
-                self.pos = np.array([
-                    hopper_to_odom.transform.translation.x,
-                    hopper_to_odom.transform.translation.y,
-                    hopper_to_odom.transform.translation.z
-                ])
-                d435_to_odom = self.tf_buffer.lookup_transform("odom", "d435", rclpy.time.Time())
+        
+        try:
+            # Get transform (Replace with real frame IDs)
+            hopper_to_odom = self.tf_buffer.lookup_transform("hopper", "odom", rclpy.time.Time())
+            self.pos = np.array([
+                hopper_to_odom.transform.translation.x,
+                hopper_to_odom.transform.translation.y,
+                hopper_to_odom.transform.translation.z
+            ])
+            d435_to_odom = self.tf_buffer.lookup_transform("odom", "d435", rclpy.time.Time())
 
-                # Extract translation
-                p = np.array([
-                    d435_to_odom.transform.translation.x,
-                    d435_to_odom.transform.translation.y,
-                    d435_to_odom.transform.translation.z
-                ])
+            # Extract translation
+            p = np.array([
+                d435_to_odom.transform.translation.x,
+                d435_to_odom.transform.translation.y,
+                d435_to_odom.transform.translation.z
+            ])
 
-                # Extract rotation matrix from quaternion
-                q = [
-                    d435_to_odom.transform.rotation.x,
-                    d435_to_odom.transform.rotation.y,
-                    d435_to_odom.transform.rotation.z,
-                    d435_to_odom.transform.rotation.w
-                ]
-                R = Rotation.from_quat(q).as_matrix()
-                
-                # Capture Camera Frame
-                self.local_mapper.capture_frame(p, R)
+            # Extract rotation matrix from quaternion
+            q = [
+                d435_to_odom.transform.rotation.x,
+                d435_to_odom.transform.rotation.y,
+                d435_to_odom.transform.rotation.z,
+                d435_to_odom.transform.rotation.w
+            ]
+            R = Rotation.from_quat(q).as_matrix()
+            
+            # Capture Camera Frame
+            self.local_mapper.capture_frame(p, R)
 
-            except Exception as e:
-                self.get_logger().warn(f"Could not get transform: {e}")
-                return
+        except Exception as e:
+            self.get_logger().warn(f"Could not get transform: {e}")
+            return
 
         # Trigger segmentation
         if (self.local_mapper.trav_seg.local_prompt and self.local_mapper.trav_seg.prompt_completed) or self.prompt_completed:
@@ -147,8 +144,7 @@ class LocalMapperNode(Node):
             self.segmentation_ready.wait()
             self.segmentation_ready.clear()
 
-            with self.lock:
-                self.local_mapper.segment_frame()
+            self.local_mapper.segment_frame()
 
             # Notify occupancy grid update
             self.get_logger().info("Frame Segmented: Ready to update grid.")
@@ -163,8 +159,7 @@ class LocalMapperNode(Node):
             self.occupancy_ready.wait()
             self.occupancy_ready.clear()
 
-            with self.lock:
-                self.local_mapper.update_occ_grid(self.pos)
+            self.local_mapper.update_occ_grid(self.pos)
 
             # Notify free-space polytope computation
             self.get_logger().info("Grid Updated: Ready to fit polytopes.")
@@ -177,8 +172,7 @@ class LocalMapperNode(Node):
             self.polytope_ready.clear()
 
             # Simulated polytope computation (Replace with real convex decomposition)
-            with self.lock:
-                self.local_mapper.fit_free_space()
+            self.local_mapper.fit_free_space()
             self.get_logger().info("Computed free-space polytopes.")
 
             # TODO: Publish polytopes
