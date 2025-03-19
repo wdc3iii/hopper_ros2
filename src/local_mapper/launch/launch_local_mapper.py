@@ -11,7 +11,7 @@ def generate_launch_description():
     init_free_radius = DeclareLaunchArgument('init_free_radius', default_value='0.25', description='Radius around robot assumed obstacle free.')
     recenter_thresh = DeclareLaunchArgument('recenter_thresh', default_value='0.5', description='Distance at which to recenter the map.')
     publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
-    publish_occ = DeclareLaunchArgument('publish_occ', default_value='false', description='Whether to publish the occupancy grid.')
+    publish_occ = DeclareLaunchArgument('publish_occ', default_value='true', description='Whether to publish the occupancy grid.')
     viz_poly = DeclareLaunchArgument('viz_poly', default_value='false', description='Whether to visualize the polytopes.')
     local_prompt = DeclareLaunchArgument('local_prompt', default_value='false', description='Whether to visualize the polytopes.')
 

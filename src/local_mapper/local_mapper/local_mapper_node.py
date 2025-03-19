@@ -1,3 +1,5 @@
+import time
+import asyncio
 import threading
 import numpy as np
 
@@ -47,7 +49,7 @@ class LocalMapperNode(Node):
         self.declare_parameter('init_free_radius', 0.25)
         self.declare_parameter('recenter_thresh', 0.5)
         self.declare_parameter('publish_pc', False)
-        self.declare_parameter('publish_occ', False)
+        self.declare_parameter('publish_occ', True)
         self.declare_parameter('viz_poly', False)
         self.declare_parameter('local_prompt', False)
 
@@ -278,21 +280,24 @@ class LocalMapperNode(Node):
         # Capture and publish image
         while self.local_mapper.trav_seg.seg_frame is None:
             self.get_logger().info("Spinning in action server.")
-            rclpy.spin_once(self, timeout_sec=0.1) 
+            rclpy.spin_once(self, timeout_sec=0.1)
         
         image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.trav_seg.seg_frame, encoding="bgr8")
+        self.prompt_idx = self.local_mapper.trav_seg.frame_idx
         image_msg.header.stamp = self.get_clock().now().to_msg()
         image_msg.header.frame_id = "d435"
 
         self.pub_frame.publish(image_msg)
-        self.prompt_idx = self.local_mapper.trav_seg.frame_idx
-        self.get_logger().info("Published image for segmentation.")
+        self.get_logger().info(f"Published image {self.prompt_idx}for segmentation.")
 
         feedback_msg = SegPrompt.Feedback()
 
         exit_prompt = False
+        t_print = self.get_clock().now()
         while not exit_prompt:
-            self.get_logger().info("Waiting for exit prompt command.")
+            if (self.get_clock().now() - t_print).nanoseconds > 1e9:
+                self.get_logger().info("Waiting for exit prompt command.")
+                t_print = self.get_clock().now()
             # Check for cancellation
             if not self.current_goal_handle or self.current_goal_handle.is_cancel_requested:
                 self.get_logger().info("Segmentation canceled.")
@@ -302,7 +307,9 @@ class LocalMapperNode(Node):
             # Wait for click data
             while not self.latest_clicks:
                 self.get_logger().info("Spinning in action server, waiting for clicks.")
-                rclpy.spin_once(self, timeout_sec=0.1)
+                # rclpy.spin_once(self, timeout_sec=0.1)  # This breaks everything, return blocks forever
+                # await asyncio.sleep(0.1)                # This also breaks, goal_handle_status -> 6, action breaks
+                time.sleep(0.1)                           
                 continue
 
             # Apply prompts
@@ -319,12 +326,13 @@ class LocalMapperNode(Node):
             goal_handle.publish_feedback(feedback_msg)
 
         self.get_logger().info("Segmentation confirmed, sending final mask.")
-        goal_handle.succeed()
+        
         result_msg = SegPrompt.Result()
         result_msg.final_mask.height, result_msg.final_mask.width, _ = self.local_mapper.trav_seg.all_mask.shape
         result_msg.final_mask.data = self.local_mapper.trav_seg.all_mask.flatten().tolist()
         self.get_logger().info("Action returning")
         self.prompt_completed = True
+        goal_handle.succeed()
         return result_msg
 
     def seg_prompt_click_callback(self, msg):

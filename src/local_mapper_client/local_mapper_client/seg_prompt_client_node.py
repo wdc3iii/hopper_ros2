@@ -57,16 +57,11 @@ class SegPromptClient(Node):
     def image_callback(self, msg):
         """Displays received image from Orin."""
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        self.vis_image()
     
     def vis_image(self):
-        self.get_logger().info("vis_callback")
-        if self.current_goal_handle:
-            status = self.current_goal_handle._status
-            self.get_logger().info(f"Current goal status: {status}")
-        else:
-            self.get_logger().info("No goal handle")
         if self.latest_image is None:
-                return
+            return
         if self.latest_mask is None:    
             frame = self.latest_image
         else:
@@ -79,18 +74,46 @@ class SegPromptClient(Node):
             )
         cv2.imshow(self.seg_vis_win_name, cv2.cvtColor(frame,cv2.COLOR_BGR2RGB))
         key_stroke = cv2.waitKey(1)
-        if key_stroke == 13:
-            self.exit_prompt = True
-            self.mouse_click_callback(-1, 0, 0, None, None)
-        elif key_stroke >= 0 and key_stroke < 256:
-            self.get_logger().info(f"Setting group: {key_stroke}")
-            self.curr_group = key_stroke
+        key = self.process_key_stroke(key_stroke)
+        if key is not None:
+            if key < 0:
+                self.exit_prompt = True
+                self.mouse_click_callback(-1, 0, 0, None, None)
+            elif key >= 0 and key < 10:
+                self.get_logger().info(f"Setting group: {key}")
+                self.curr_group = key
 
+    @staticmethod
+    def process_key_stroke(key_stroke):
+        if key_stroke != -1:
+            if key_stroke == ord('0'):
+                return 0
+            elif key_stroke == ord('1'):
+                return 1
+            elif key_stroke == ord('2'):
+                return 2
+            elif key_stroke == ord('3'):
+                return 3
+            elif key_stroke == ord('4'):
+                return 4
+            elif key_stroke == ord('5'):
+                return 5
+            elif key_stroke == ord('6'):
+                return 6
+            elif key_stroke == ord('7'):
+                return 7
+            elif key_stroke == ord('8'):
+                return 8
+            elif key_stroke == ord('9'):
+                return 9
+            elif key_stroke == 13:  # Enter key
+                return -1
+        return None
+    
     def mask_callback(self, msg):
         """Displays segmentation mask received from Orin."""
         self.latest_mask = np.array(msg.data).reshape(msg.height, msg.width)
         self.vis_image()
-        cv2.waitKey(1)
 
     def mouse_click_callback(self, event, x, y, flags, param):
         """Handles mouse clicks and sends them to Orin."""
@@ -130,19 +153,6 @@ class SegPromptClient(Node):
         self._send_goal_future = self.seg_prompt_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
-    # def goal_response_callback(self, future):
-    #     """Handles the segmentation goal response."""
-    #     goal_handle = future.result()
-    #     if not goal_handle.accepted:
-    #         self.get_logger().info('Segmentation goal rejected.')
-    #         return
-    #     self.in_progress = True
-    #     self.get_logger().info('Segmentation goal accepted.')
-
-    #     self.current_goal_handle = goal_handle
-    #     self._get_result_future = self.current_goal_handle.get_result_async()
-    #     self._get_result_future.add_done_callback(self.result_callback)
-
     def goal_response_callback(self, future):
         goal_handle = future.result()
         if not goal_handle.accepted:
@@ -173,8 +183,6 @@ class SegPromptClient(Node):
         
         self.in_progress = False
         self.mask_callback(result.final_mask)
-        
-        cv2.waitKey(0)
 
 
 def main():

@@ -7,7 +7,15 @@ def generate_launch_description():
     rviz_config_file = os.path.join(get_package_share_directory('local_mapper_client'), 'rviz', 'local_map.rviz')
 
     return LaunchDescription([
-        # Launch your node
+        # Launch Prompt Node
+        Node(
+            package='local_mapper_client',
+            executable='seg_prompt_client_node',
+            name='seg_prompt_client_node',
+            output='screen'
+        ),
+
+        # Launch Polytope viz node
         Node(
             package='local_mapper_client',
             executable='viz_polytopes',
