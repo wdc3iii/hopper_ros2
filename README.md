@@ -11,7 +11,7 @@ alias source_hopper='mamba activate trav_seg && source /opt/ros/humble/setup.bas
 
 To launch the relevant nodes, run
 ```
-ros2 launch local_mapper launch_local_mapper.py viz_poly:=true publish_occ:=true local_prompt:=true
+ros2 launch local_mapper launch_local_mapper.py
 ```
 
 This launches the t265 tracking camera, publishes two static tranforms relating the hopper frame to the camera frames, and launch the node which processes camera data to free space polytopes. If true, ```viz_poly``` publishes the polytopes to RViz. If true, ```publish_occ``` publishes the occupancy grid to RViz. If true, ```local_prompt``` prompts the segmenter from this launch file. Otherwise, on a machine connected to the ROS2 network, run

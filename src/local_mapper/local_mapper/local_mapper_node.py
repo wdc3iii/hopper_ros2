@@ -276,6 +276,7 @@ class LocalMapperNode(Node):
     async def seg_prompt_server(self, goal_handle):
         """Handles segmentation process interactively."""
         self.current_goal_handle = goal_handle
+        self.prompt_completed = False
 
         # Capture and publish image
         while self.local_mapper.trav_seg.seg_frame is None:
