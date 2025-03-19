@@ -12,6 +12,7 @@ from local_mapper_interfaces.msg import PromptClickData
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from visualization_msgs.msg import Marker, MarkerArray
 from tf2_ros import Buffer, TransformListener
+from local_mapper_interfaces.msg import PolytopeArray, Polytope
 
 from rclpy.action import ActionServer
 from local_mapper_interfaces.action import SegPrompt
@@ -32,6 +33,7 @@ class LocalMapperNode(Node):
         # Timer for capturing camera frames and transforms
         self.declare_parameter('capture_period', 0.2)
         self.timer = self.create_timer(self.get_parameter('capture_period').value, self.capture_frame)
+        self.pub_polytopes = self.create_publisher(PolytopeArray, 'free_polytopes', 10)
 
         # Shared Data and Locks
         self.pos = None
@@ -177,6 +179,16 @@ class LocalMapperNode(Node):
             self.get_logger().info("Computed free-space polytopes.")
 
             # TODO: Publish polytopes
+            polytopes = []
+            for polytope in self.local_mapper.polytopes:
+                poly = Polytope()
+                poly.vertices = polytope['vertices'].flatten().tolist()
+                poly.normals = polytope['A'].flatten().tolist()
+                poly.b = polytope['b'].flatten().tolist()
+                polytopes.append(poly)
+            poly_arr = PolytopeArray()
+            poly_arr.polytopes = polytopes
+            self.pub_polytopes.publish(poly_arr)
 
             if self.get_parameter('viz_poly').value:
                 self.viz_polytopes_()
