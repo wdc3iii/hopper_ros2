@@ -15,6 +15,7 @@ class SegPromptClient(Node):
         super().__init__('segment_prompt_client')
 
         # Action client to communicate with Jetson Orin
+        self.in_progress = False
         self.seg_prompt_client = ActionClient(self, SegPrompt, 'seg_prompt')
 
         # Click publisher (sends clicks back to Orin)
@@ -73,6 +74,7 @@ class SegPromptClient(Node):
         key_stroke = cv2.waitKey(1)
         if key_stroke == 13:
             self.exit_prompt = True
+            self.mouse_click_callback(-1, 0, 0, None, None)
         elif key_stroke >= 0 and key_stroke < 256:
             self.get_logger().info(f"Setting group: {key_stroke}")
             self.curr_group = key_stroke
@@ -85,7 +87,7 @@ class SegPromptClient(Node):
 
     def mouse_click_callback(self, event, x, y, flags, param):
         """Handles mouse clicks and sends them to Orin."""
-        if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_RBUTTONDOWN:
+        if event == cv2.EVENT_LBUTTONDOWN or event == cv2.EVENT_RBUTTONDOWN or self.exit_prompt:
             click_msg = PromptClickData()
             click_msg.group = self.curr_group
             click_msg.label = True if event == cv2.EVENT_LBUTTONDOWN else False
@@ -96,6 +98,11 @@ class SegPromptClient(Node):
             self.get_logger().info(f"Sent prompt click at ({x}, {y}) to group {self.curr_group} with label {click_msg.label}")
             if self.exit_prompt:
                 self.exit_prompt = False
+        elif event == cv2.EVENT_MBUTTONDOWN:
+            if self.in_progress:
+                self.get_logger().info(f"Recieved segmenter prompt command - cannot send, current prompt not complete.")
+                return
+            self.send_goal()
 
     def trigger_callback(self, request, response):
         """Handles segmentation trigger requests."""
@@ -119,7 +126,7 @@ class SegPromptClient(Node):
         if not goal_handle.accepted:
             self.get_logger().info('Segmentation goal rejected.')
             return
-
+        self.in_progress = True
         self.get_logger().info('Segmentation goal accepted.')
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self.result_callback)
@@ -133,6 +140,7 @@ class SegPromptClient(Node):
         result = future.result().result
         self.get_logger().info('Segmentation complete.')
         self.mask_callback(result.final_mask)
+        self.in_progress = False
         cv2.waitKey(0)
 
 
