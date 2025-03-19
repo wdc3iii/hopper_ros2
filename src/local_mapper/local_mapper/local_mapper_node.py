@@ -284,12 +284,11 @@ class LocalMapperNode(Node):
             rclpy.spin_once(self, timeout_sec=0.1)
         
         image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.trav_seg.seg_frame, encoding="bgr8")
-        self.prompt_idx = self.local_mapper.trav_seg.frame_idx
         image_msg.header.stamp = self.get_clock().now().to_msg()
         image_msg.header.frame_id = "d435"
 
         self.pub_frame.publish(image_msg)
-        self.get_logger().info(f"Published image {self.prompt_idx}for segmentation.")
+        self.get_logger().info(f"Published image for segmentation.")
 
         feedback_msg = SegPrompt.Feedback()
 
@@ -318,7 +317,7 @@ class LocalMapperNode(Node):
                 if ex_prompt_:
                     exit_prompt = ex_prompt_
                     break
-                self.local_mapper.trav_seg.add_prompt(group, label, x, y, self.prompt_idx)
+                self.local_mapper.trav_seg.add_prompt(group, label, x, y)
             self.latest_clicks = []
 
             # Send feedback (updated segmentation mask)
