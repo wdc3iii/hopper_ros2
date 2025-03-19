@@ -106,6 +106,8 @@ class SegPromptClient(Node):
     
     def send_goal(self):
         """Requests segmentation from the Jetson Orin."""
+        self.get_logger().info("Sending Goal Request to update segmenter prompt...")
+
         goal_msg = SegPrompt.Goal()
         self.seg_prompt_client.wait_for_server()
         self._send_goal_future = self.seg_prompt_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)

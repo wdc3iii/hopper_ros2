@@ -1,0 +1,22 @@
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Name: Grid
+      Class: rviz_default_plugins/Grid
+      Enabled: true
+      Cell Size: 1.0
+    - Name: OccupancyGrid
+      Class: rviz_default_plugins/Map
+      Enabled: true
+      Topic: "/occ_grid"
+      Alpha: 0.7
+      Color Scheme: "map"
+    - Name: Markers
+      Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Topic: "/viz_poly"
+  Global Options:
+    Fixed Frame: "odom"
+  Tools:
+    - Name: Measure
+      Class: rviz_default_plugins/Measure

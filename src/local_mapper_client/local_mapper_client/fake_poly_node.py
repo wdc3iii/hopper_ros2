@@ -55,6 +55,8 @@ class FakePolyNode(Node):
             [-1.5],
         ]).flatten().tolist()
         self.msg.polytopes = [p1, p2]
+        self.get_logger().info("Initialized Fake Polytope Publisher node.")
+
 
 
     def timer_callback(self):

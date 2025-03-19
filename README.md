@@ -33,3 +33,10 @@ To test downstream processing of free polytopes without running the entire stack
 ros2 run local_mapper_client fake_poly_node
 ```
 The polytopes it publishes can be edited directly in `local_mapper_client/fake_poly_node.py`. 
+
+
+## Networking??
+
+```
+nmcli connection modify 'Wired connection 1' ipv4.addresses 192.168.1.1/24 ipv4.method manual
+```
