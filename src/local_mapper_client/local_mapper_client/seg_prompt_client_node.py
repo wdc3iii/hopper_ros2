@@ -56,6 +56,7 @@ class SegPromptClient(Node):
 
     def image_callback(self, msg):
         """Displays received image from Orin."""
+        self.get_logger().info("image Callback")
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         self.vis_image()
     
