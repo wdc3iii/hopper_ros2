@@ -11,24 +11,28 @@ from scipy.spatial import Delaunay
 class VizPolytopes(Node):
     def __init__(self):
         super().__init__('fake_poly_node')
+
+        # Create visualization publisher
         self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)
 
+        # Create polytope subscriber
         self.sub_polytope = self.create_subscription(
             PolytopeArray,
             'free_polytopes',
             self.polytope_callback,
             1
         )
-
         self.get_logger().info("Initialized Viz Polytope node.")
 
     def polytope_callback(self, msg):
         self.get_logger().info("Polytope callback activated")
         marker_array = MarkerArray()
+        # Loop through polytopes, add to marker array
         for i, polytope in enumerate(msg.polytopes):
             vertices = np.array(polytope.vertices).reshape((-1, 2))
             marker = self.create_filled_polygon_marker_(vertices, marker_id=i)
             marker_array.markers.append(marker)
+        # Publish marker array
         self.poly_viz_pub.publish(marker_array)
 
     def create_filled_polygon_marker_(self, vertices, marker_id, color=(0.0, 1.0, 0.0, 0.25)):  
