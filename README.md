@@ -22,7 +22,7 @@ This node runs an action server which can trigger re-prompting of the segmenter 
 
 RViz can be launched with
 ```
-ros2 run rviz2 rviz2
+ros2 launch local_mapper_client launch_mapper_client.py
 ```
 to visualize the robot frames, occupancy grid, and free-space polytopes if desired.
 

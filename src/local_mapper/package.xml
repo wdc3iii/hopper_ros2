@@ -7,7 +7,6 @@
   <maintainer email="noelcs@caltech.edu">noelcs</maintainer>
   <license>TODO: License declaration</license>
 
-
   <depend>local_mapper_interfaces</depend>
 
   <test_depend>ament_copyright</test_depend>

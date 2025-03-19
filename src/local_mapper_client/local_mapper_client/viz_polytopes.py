@@ -13,9 +13,9 @@ class VizPolytopes(Node):
         super().__init__('fake_poly_node')
         self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)
 
-        self.image_subscriber = self.create_subscription(
+        self.sub_polytope = self.create_subscription(
             PolytopeArray,
-            'free_polytope',
+            'free_polytopes',
             self.polytope_callback,
             1
         )
@@ -23,9 +23,10 @@ class VizPolytopes(Node):
         self.get_logger().info("Initialized Viz Polytope node.")
 
     def polytope_callback(self, msg):
+        self.get_logger().info("Polytope callback activated")
         marker_array = MarkerArray()
         for i, polytope in enumerate(msg.polytopes):
-            vertices = polytope.vertices.reshape((-1, 2))
+            vertices = np.array(polytope.vertices).reshape((-1, 2))
             marker = self.create_filled_polygon_marker_(vertices, marker_id=i)
             marker_array.markers.append(marker)
         self.poly_viz_pub.publish(marker_array)
