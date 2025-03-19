@@ -65,6 +65,7 @@ class LocalMapperNode(Node):
             self.seg_prompt_click_callback,
             10
         )
+        self.prompt_completed = False
 
         self.local_mapper = LocalMapper(
             self.get_parameter('map_disc').value,
@@ -93,6 +94,7 @@ class LocalMapperNode(Node):
         self.polytope_thread.start()
 
     def capture_frame(self):
+        self.get_logger().info("Capture Frame callback triggered.")
         """Captures a frame and retrieves transform."""
         with self.lock:
             try:
@@ -129,8 +131,7 @@ class LocalMapperNode(Node):
                 return
 
         # Trigger segmentation
-        
-        if self.local_mapper.trav_seg.prompt_completed:
+        if (self.local_mapper.trav_seg.local_prompt and self.local_mapper.trav_seg.prompt_completed) or self.prompt_completed:
             self.get_logger().info("Image Captured: Ready to segment.")
             self.segmentation_ready.set()
         else:
@@ -276,6 +277,7 @@ class LocalMapperNode(Node):
 
         # Capture and publish image
         while self.local_mapper.trav_seg.seg_frame is None:
+            self.get_logger().info("Spinning in action server.")
             rclpy.spin_once(self, timeout_sec=0.1) 
         
         image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.trav_seg.seg_frame, encoding="bgr8")
@@ -290,6 +292,7 @@ class LocalMapperNode(Node):
 
         exit_prompt = False
         while not exit_prompt:
+            self.get_logger().info("Waiting for exit prompt command.")
             # Check for cancellation
             if not self.current_goal_handle or self.current_goal_handle.is_cancel_requested:
                 self.get_logger().info("Segmentation canceled.")
@@ -298,6 +301,7 @@ class LocalMapperNode(Node):
             
             # Wait for click data
             while not self.latest_clicks:
+                self.get_logger().info("Spinning in action server, waiting for clicks.")
                 rclpy.spin_once(self, timeout_sec=0.1)
                 continue
 
@@ -316,7 +320,12 @@ class LocalMapperNode(Node):
 
         self.get_logger().info("Segmentation confirmed, sending final mask.")
         goal_handle.succeed()
-        return SegPrompt.Result(final_mask=self.local_mapper.trav_seg.all_mask)
+        result_msg = SegPrompt.Result()
+        result_msg.final_mask.height, result_msg.final_mask.width, _ = self.local_mapper.trav_seg.all_mask.shape
+        result_msg.final_mask.data = self.local_mapper.trav_seg.all_mask.flatten().tolist()
+        self.get_logger().info("Action returning")
+        self.prompt_completed = True
+        return result_msg
 
     def seg_prompt_click_callback(self, msg):
         self.latest_clicks.append((msg.group, msg.label, msg.x, msg.y, msg.exit_prompt))

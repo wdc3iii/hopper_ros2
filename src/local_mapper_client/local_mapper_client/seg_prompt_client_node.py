@@ -45,6 +45,7 @@ class SegPromptClient(Node):
         self.bridge = CvBridge()
         self.latest_image = None
         self.latest_mask = None
+        self.current_goal_handle = None
 
         self.seg_vis_win_name = "Camera Control"
         cv2.namedWindow(self.seg_vis_win_name, cv2.WINDOW_GUI_NORMAL)
@@ -58,6 +59,12 @@ class SegPromptClient(Node):
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
     
     def vis_image(self):
+        self.get_logger().info("vis_callback")
+        if self.current_goal_handle:
+            status = self.current_goal_handle._status
+            self.get_logger().info(f"Current goal status: {status}")
+        else:
+            self.get_logger().info("No goal handle")
         if self.latest_image is None:
                 return
         if self.latest_mask is None:    
@@ -95,9 +102,12 @@ class SegPromptClient(Node):
             click_msg.y = y
             click_msg.exit_prompt = self.exit_prompt
             self.click_publisher.publish(click_msg)
-            self.get_logger().info(f"Sent prompt click at ({x}, {y}) to group {self.curr_group} with label {click_msg.label}")
+            
             if self.exit_prompt:
                 self.exit_prompt = False
+                self.get_logger().info(f"Sent exit prompt command.")
+            else:
+                self.get_logger().info(f"Sent prompt click at ({x}, {y}) to group {self.curr_group} with label {click_msg.label}")
         elif event == cv2.EVENT_MBUTTONDOWN:
             if self.in_progress:
                 self.get_logger().info(f"Recieved segmenter prompt command - cannot send, current prompt not complete.")
@@ -120,16 +130,37 @@ class SegPromptClient(Node):
         self._send_goal_future = self.seg_prompt_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
+    # def goal_response_callback(self, future):
+    #     """Handles the segmentation goal response."""
+    #     goal_handle = future.result()
+    #     if not goal_handle.accepted:
+    #         self.get_logger().info('Segmentation goal rejected.')
+    #         return
+    #     self.in_progress = True
+    #     self.get_logger().info('Segmentation goal accepted.')
+
+    #     self.current_goal_handle = goal_handle
+    #     self._get_result_future = self.current_goal_handle.get_result_async()
+    #     self._get_result_future.add_done_callback(self.result_callback)
+
     def goal_response_callback(self, future):
-        """Handles the segmentation goal response."""
         goal_handle = future.result()
         if not goal_handle.accepted:
             self.get_logger().info('Segmentation goal rejected.')
             return
+
         self.in_progress = True
         self.get_logger().info('Segmentation goal accepted.')
-        self._get_result_future = goal_handle.get_result_async()
-        self._get_result_future.add_done_callback(self.result_callback)
+
+        self.current_goal_handle = goal_handle  # Store handle
+
+        self.get_logger().info("Requesting result from server...")
+        self._get_result_future = self.current_goal_handle.get_result_async()
+        if self._get_result_future is None:
+            self.get_logger().error("Error: get_result_async() returned None.")
+        else:
+            self.get_logger().info("Successfully requested result.")
+            self._get_result_future.add_done_callback(self.result_callback)
 
     def feedback_callback(self, feedback_msg):
         """Receives segmentation masks as feedback."""
@@ -137,10 +168,12 @@ class SegPromptClient(Node):
 
     def result_callback(self, future):
         """Handles final segmentation result."""
-        result = future.result().result
         self.get_logger().info('Segmentation complete.')
-        self.mask_callback(result.final_mask)
+        result = future.result().result
+        
         self.in_progress = False
+        self.mask_callback(result.final_mask)
+        
         cv2.waitKey(0)
 
 
