@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /MarkerArray1
+        - /TF1
+        - /TF1/Frames1
       Splitter Ratio: 0.5
     Tree Height: 1799
   - Class: rviz_common/Selection
@@ -73,13 +75,39 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        polygons: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /viz_poly
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        d435:
+          Value: false
+        hopper:
+          Value: true
+        odom:
+          Value: false
+        t265_frame:
+          Value: false
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        odom:
+          t265_frame:
+            hopper:
+              d435:
+                {}
+      Update Interval: 0
       Value: true
   Enabled: true
   Global Options:
@@ -142,10 +170,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.785398006439209
+      Pitch: 0.9553978443145752
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.785398006439209
+      Yaw: 1.1103976964950562
     Saved: ~
 Window Geometry:
   Displays:
