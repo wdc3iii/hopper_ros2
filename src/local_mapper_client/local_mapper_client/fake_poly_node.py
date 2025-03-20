@@ -16,22 +16,25 @@ class FakePolyNode(Node):
         # Polytope 1  -> -0.5 <= x <= 0.5, -0.5 <= y <= 2
         p1 = Polytope()
         p1.vertices = np.array([
-            [-0.5, -0.5],
-            [0.5, -0.5],
-            [0.5, 2],
-            [-0.5, 2]
+            [0., 0.],
+            [2., 0.],
+            [2., 1.],
+            [1., 2.],
+            [0., 1.]
         ]).flatten().tolist()
         p1.normals = np.array([
-            [1., 0.],
-            [-1., 0.],
-            [0., 1.],
             [0., -1.],
+            [1., 0.],
+            [0.707, 0.707],
+            [-0.707, 0.707],
+            [-1., 0.],
         ]).flatten().tolist()
         p1.b = np.array([
-            [0.5],
-            [0.5],
-            [2],
-            [0.5],
+            [0.],
+            [2.],
+            [2.121],
+            [0.707],
+            [0.],
         ]).flatten().tolist()
 
         # Polytope 2  -> -2 <= x <= 0.5, 1.5 <= y <= 2
@@ -39,20 +42,20 @@ class FakePolyNode(Node):
         p2.vertices = np.array([
             [-2.5, 1.5],
             [0.5, 1.5],
-            [0.5, 2],
-            [-2.5, 2]
+            [0.5, 2.],
+            [-2.5, 2.]
         ]).flatten().tolist()
         p2.normals = np.array([
-            [1., 0.],
-            [-1., 0.],
-            [0., 1.],
             [0., -1.],
+            [1., 0.],
+            [0., 1.],
+            [-1., 0.],
         ]).flatten().tolist()
         p2.b = np.array([
-            [0.5],
-            [2],
-            [2],
             [-1.5],
+            [0.5],
+            [2.],
+            [2.5],
         ]).flatten().tolist()
         self.msg.polytopes = [p1, p2]
         self.get_logger().info("Initialized Fake Polytope Publisher node.")
