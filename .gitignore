@@ -3,3 +3,9 @@ install/*
 log/*
 
 __pycache__/
+*.npy
+*.mat
+*.asv
+*.csv
+*.jpg
+*.mp4

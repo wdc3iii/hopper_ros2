@@ -140,7 +140,7 @@ class LocalMapperNode(Node):
             self.get_logger().info("Image Captured: Ready to segment.")
             self.segmentation_ready.set()
             if self.get_parameter('publish_frame').value:
-                self.publish_frame_()
+                self.publish_frame()
         else:
             self.get_logger().info("Image Captured: Waiting for segmentation Prompt.")
 
@@ -370,8 +370,8 @@ class LocalMapperNode(Node):
 
         mask_msg = BoolImage()
         all_mask = self.local_mapper.get_all_mask()
-        mask_msg.mask.height, mask_msg.mask.width, _ = all_mask.shape
-        mask_msg.mask.data = all_mask.flatten().tolist()
+        mask_msg.height, mask_msg.width, _ = all_mask.shape
+        mask_msg.data = all_mask.flatten().tolist()
         self.pub_mask.publish(mask_msg)
 
     def seg_prompt_click_callback(self, msg: PromptClickData):
