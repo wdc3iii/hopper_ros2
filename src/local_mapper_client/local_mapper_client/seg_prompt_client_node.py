@@ -7,7 +7,7 @@ from rclpy.action import ActionClient
 
 from sensor_msgs.msg import Image
 from local_mapper_interfaces.action import SegPrompt
-from local_mapper_interfaces.msg import PromptClickData
+from local_mapper_interfaces.msg import PromptClickData, BoolImage
 
 
 class SegPromptClient(Node):
