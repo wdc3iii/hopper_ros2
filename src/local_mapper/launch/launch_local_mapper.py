@@ -12,13 +12,14 @@ def generate_launch_description():
     recenter_thresh = DeclareLaunchArgument('recenter_thresh', default_value='0.5', description='Distance at which to recenter the map.')
     publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
     publish_occ = DeclareLaunchArgument('publish_occ', default_value='true', description='Whether to publish the occupancy grid.')
+    publish_frame = DeclareLaunchArgument('publish_frame', default_value='true', description='Whether to publish the rbg frame.')
     viz_poly = DeclareLaunchArgument('viz_poly', default_value='false', description='Whether to visualize the polytopes.')
     local_prompt = DeclareLaunchArgument('local_prompt', default_value='false', description='Whether to visualize the polytopes.')
 
     return LaunchDescription([
         # Launch Parameters
         map_disc, map_dim, n_free_spaces, init_free_radius, recenter_thresh,
-        publish_pc, publish_occ, viz_poly, local_prompt,
+        publish_pc, publish_occ, publish_frame, viz_poly, local_prompt,
         # t265 Node
         Node(
             package="realsense_ros2",
@@ -61,6 +62,7 @@ def generate_launch_description():
                 'recenter_thresh': LaunchConfiguration('recenter_thresh'),
                 'publish_pc': LaunchConfiguration('publish_pc'),
                 'publish_occ': LaunchConfiguration('publish_occ'),
+                'publish_frame': LaunchConfiguration('publish_frame'),
                 'viz_poly': LaunchConfiguration('viz_poly'),
                 'local_prompt': LaunchConfiguration('local_prompt'),
             }],

@@ -7,10 +7,15 @@ from local_mapper_interfaces.msg import PolytopeArray, Polytope
 class FakePolyNode(Node):
     def __init__(self):
         super().__init__('fake_poly_node')
-        self.publisher_ = self.create_publisher(PolytopeArray, 'free_polytopes', 10)
-        self.timer = self.create_timer(0.1, self.timer_callback)
-        self.counter = 0
 
+        # Create polytope publisher
+        self.publisher_ = self.create_publisher(PolytopeArray, 'free_polytopes', 10)
+
+        # Create timer on which to publish polytopes
+        self.timer = self.create_timer(0.1, self.timer_callback)
+
+        # Construct polytope array to publish.
+        # NOTE: ith vertex : i->(i+1) % n edge convention
         self.msg = PolytopeArray()
 
         # Polytope 1  -> -0.5 <= x <= 0.5, -0.5 <= y <= 2
@@ -63,6 +68,7 @@ class FakePolyNode(Node):
 
 
     def timer_callback(self):
+        """Time callback to publish polytopes"""
         self.publisher_.publish(self.msg)
         self.get_logger().info(f'Publishing Polytopes')
         self.counter += 1
