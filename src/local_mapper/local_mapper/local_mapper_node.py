@@ -134,7 +134,7 @@ class LocalMapperNode(Node):
             return
 
         # Trigger segmentation (unless prompting is running)
-        if (self.local_mapper.trav_seg.local_prompt and self.local_mapper.trav_seg.prompt_completed) or self.prompt_completed:
+        if (self.local_mapper.get_local_prompt() and self.local_mapper.get_prompt_completed()) or self.prompt_completed:
             self.get_logger().info("Image Captured: Ready to segment.")
             self.segmentation_ready.set()
         else:
@@ -221,7 +221,7 @@ class LocalMapperNode(Node):
         header.frame_id = "odom"
 
         # Convert NumPy array to PointCloud2 message and publish
-        cloud_msg = point_cloud2.create_cloud_xyz32(header, self.local_mapper.trav_seg.xyz)
+        cloud_msg = point_cloud2.create_cloud_xyz32(header, self.local_mapper.get_xyz())
         self.pc_pub.publish(cloud_msg)
 
     def publish_occ_grid_(self):
@@ -295,7 +295,7 @@ class LocalMapperNode(Node):
         self.prompt_completed = False
 
         # Capture and publish image
-        while self.local_mapper.trav_seg.seg_frame is None:
+        while self.local_mapper.get_seg_frame() is None:
             self.get_logger().info("Spinning in action server.")
             rclpy.spin_once(self, timeout_sec=0.1)
         
@@ -303,7 +303,7 @@ class LocalMapperNode(Node):
         self.local_mapper.reset_first_frame()
 
         # Publish the frame to the client
-        image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.trav_seg.seg_frame, encoding="bgr8")
+        image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.get_seg_frame(), encoding="bgr8")
         image_msg.header.stamp = self.get_clock().now().to_msg()
         image_msg.header.frame_id = "d435"
         self.pub_frame.publish(image_msg)
@@ -338,19 +338,21 @@ class LocalMapperNode(Node):
                 if ex_prompt_:
                     exit_prompt = ex_prompt_
                     break
-                self.local_mapper.trav_seg.add_prompt(group, label, x, y)
+                self.local_mapper.add_prompt(group, label, x, y)
             self.latest_clicks = []
 
             # Send feedback (updated segmentation mask)
-            feedback_msg.mask.height, feedback_msg.mask.width, _ = self.local_mapper.trav_seg.all_mask.shape
-            feedback_msg.mask.data = self.local_mapper.trav_seg.all_mask.flatten().tolist()
+            all_mask = self.local_mapper.get_all_mask()
+            feedback_msg.mask.height, feedback_msg.mask.width, _ = all_mask.shape
+            feedback_msg.mask.data = all_mask.flatten().tolist()
             goal_handle.publish_feedback(feedback_msg)
 
         # Action complete, send results
         self.get_logger().info("Segmentation confirmed, sending final mask.")
         result_msg = SegPrompt.Result()
-        result_msg.final_mask.height, result_msg.final_mask.width, _ = self.local_mapper.trav_seg.all_mask.shape
-        result_msg.final_mask.data = self.local_mapper.trav_seg.all_mask.flatten().tolist()
+        all_mask = self.local_mapper.get_all_mask()
+        result_msg.final_mask.height, result_msg.final_mask.width, _ = all_mask.shape
+        result_msg.final_mask.data = all_mask.flatten().tolist()
         self.prompt_completed = True
         goal_handle.succeed()
         return result_msg
