@@ -16,7 +16,7 @@ from sensor_msgs.msg import PointCloud2, Image
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from local_mapper_interfaces.action import SegPrompt
 from visualization_msgs.msg import Marker, MarkerArray
-from local_mapper_interfaces.msg import PromptClickData
+from local_mapper_interfaces.msg import PromptClickData, BoolImage
 from local_mapper_interfaces.msg import PolytopeArray, Polytope
 
 from trav_seg.local_mapper import LocalMapper
@@ -34,6 +34,7 @@ class LocalMapperNode(Node):
         self.declare_parameter('recenter_thresh', 0.5)
         self.declare_parameter('publish_pc', False)
         self.declare_parameter('publish_occ', True)
+        self.declare_parameter('publish_frame', True)
         self.declare_parameter('viz_poly', False)
         self.declare_parameter('local_prompt', False)
         self.declare_parameter('capture_period', 0.2)
@@ -43,11 +44,12 @@ class LocalMapperNode(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # Timer for capturing camera frames and transforms
-        self.timer = self.create_timer(self.get_parameter('capture_period').value, self.capture_frame)
+        self.capture_timer = self.create_timer(self.get_parameter('capture_period').value, self.capture_frame)
 
         # ROS publishers
         self.pub_polytopes = self.create_publisher(PolytopeArray, 'free_polytopes', 10)     # Publishes free space polytopes
         self.pub_frame = self.create_publisher(Image, 'd435_image', 1)                      # Publishes rgb images
+        self.pub_mask = self.create_publisher(BoolImage, 'seg_mask', 1)                     # Publishes segmentation masks
         self.pc_pub = self.create_publisher(PointCloud2, 'd435_pointcloud', 1)              # Published pointcloud
         self.occ_pub = self.create_publisher(OccupancyGrid, 'occ_grid', 1)                  # Publishes occupancy grid
         self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)               # Publishes polytope visualization
@@ -137,6 +139,8 @@ class LocalMapperNode(Node):
         if (self.local_mapper.get_local_prompt() and self.local_mapper.get_prompt_completed()) or self.prompt_completed:
             self.get_logger().info("Image Captured: Ready to segment.")
             self.segmentation_ready.set()
+            if self.get_parameter('publish_frame').value:
+                self.publish_frame_()
         else:
             self.get_logger().info("Image Captured: Waiting for segmentation Prompt.")
 
@@ -356,6 +360,19 @@ class LocalMapperNode(Node):
         self.prompt_completed = True
         goal_handle.succeed()
         return result_msg
+    
+    def publish_frame(self):
+        # Publish the frame to the client
+        image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.get_seg_frame(), encoding="bgr8")
+        image_msg.header.stamp = self.get_clock().now().to_msg()
+        image_msg.header.frame_id = "d435"
+        self.pub_frame.publish(image_msg)
+
+        mask_msg = BoolImage()
+        all_mask = self.local_mapper.get_all_mask()
+        mask_msg.mask.height, mask_msg.mask.width, _ = all_mask.shape
+        mask_msg.mask.data = all_mask.flatten().tolist()
+        self.pub_mask.publish(mask_msg)
 
     def seg_prompt_click_callback(self, msg: PromptClickData):
         """Processes click callback

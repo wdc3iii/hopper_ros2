@@ -30,7 +30,7 @@ class SegPromptClient(Node):
         )
         self.mask_subscriber = self.create_subscription(            # Feedback subscriber (receives segmentation mask updates)
             Image,
-            'segmentation_mask',
+            'seg_mask',
             self.mask_callback,
             10
         )
