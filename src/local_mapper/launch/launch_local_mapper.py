@@ -8,7 +8,7 @@ def generate_launch_description():
     map_disc = DeclareLaunchArgument('map_disc', default_value='0.05', description='Discretization of the map.')
     map_dim = DeclareLaunchArgument('map_dim', default_value='200', description='Number of cells per dimension on the map.')
     n_free_spaces = DeclareLaunchArgument('n_free_spaces', default_value='5', description='Number of free spaces to fit to the map.')
-    init_free_radius = DeclareLaunchArgument('init_free_radius', default_value='0.25', description='Radius around robot assumed obstacle free.')
+    init_free_radius = DeclareLaunchArgument('init_free_radius', default_value='0.75', description='Radius around robot assumed obstacle free.')
     recenter_thresh = DeclareLaunchArgument('recenter_thresh', default_value='0.5', description='Distance at which to recenter the map.')
     publish_pc = DeclareLaunchArgument('publish_pc', default_value='false', description='Whether to publish the point cloud.')
     publish_occ = DeclareLaunchArgument('publish_occ', default_value='true', description='Whether to publish the occupancy grid.')
