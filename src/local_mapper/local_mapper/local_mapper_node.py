@@ -362,17 +362,18 @@ class LocalMapperNode(Node):
         return result_msg
     
     def publish_frame(self):
+        return
         # Publish the frame to the client
-        image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.get_seg_frame(), encoding="bgr8")
-        image_msg.header.stamp = self.get_clock().now().to_msg()
-        image_msg.header.frame_id = "d435"
-        self.pub_frame.publish(image_msg)
+        # image_msg = self.bridge.cv2_to_imgmsg(self.local_mapper.get_seg_frame(), encoding="bgr8")
+        # image_msg.header.stamp = self.get_clock().now().to_msg()
+        # image_msg.header.frame_id = "d435"
+        # self.pub_frame.publish(image_msg)
 
-        mask_msg = BoolImage()
-        all_mask = self.local_mapper.get_all_mask()
-        mask_msg.height, mask_msg.width, _ = all_mask.shape
-        mask_msg.data = all_mask.flatten().tolist()
-        self.pub_mask.publish(mask_msg)
+        # mask_msg = BoolImage()
+        # all_mask = self.local_mapper.get_all_mask()
+        # mask_msg.height, mask_msg.width, _ = all_mask.shape
+        # mask_msg.data = all_mask.flatten().tolist()
+        # self.pub_mask.publish(mask_msg)
 
     def seg_prompt_click_callback(self, msg: PromptClickData):
         """Processes click callback
