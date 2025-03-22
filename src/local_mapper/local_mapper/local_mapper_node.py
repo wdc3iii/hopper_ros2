@@ -38,6 +38,7 @@ class LocalMapperNode(Node):
         self.declare_parameter('viz_poly', False)
         self.declare_parameter('local_prompt', False)
         self.declare_parameter('capture_period', 0.2)
+        self.declare_parameter('buffer_free', 2)
 
         # TF2 Transform buffer & listener
         self.tf_buffer = Buffer()
@@ -77,7 +78,8 @@ class LocalMapperNode(Node):
             self.get_parameter('n_free_spaces').value,
             self.get_parameter('init_free_radius').value,
             self.get_parameter('recenter_thresh').value,
-            local_prompt=self.get_parameter('local_prompt').value
+            local_prompt=self.get_parameter('local_prompt').value,
+            buffer_free=self.get_parameter('buffer_free').value
         )
 
         # Shared Data and Locks

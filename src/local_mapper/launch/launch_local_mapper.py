@@ -15,11 +15,12 @@ def generate_launch_description():
     publish_frame = DeclareLaunchArgument('publish_frame', default_value='true', description='Whether to publish the rbg frame.')
     viz_poly = DeclareLaunchArgument('viz_poly', default_value='false', description='Whether to visualize the polytopes.')
     local_prompt = DeclareLaunchArgument('local_prompt', default_value='false', description='Whether to visualize the polytopes.')
+    buffer_free = DeclareLaunchArgument('buffer_free', default_value='2', description='Grid spaces to buffer free space by.')
 
     return LaunchDescription([
         # Launch Parameters
         map_disc, map_dim, n_free_spaces, init_free_radius, recenter_thresh,
-        publish_pc, publish_occ, publish_frame, viz_poly, local_prompt,
+        publish_pc, publish_occ, publish_frame, viz_poly, local_prompt, buffer_free,
         # t265 Node
         Node(
             package="realsense_ros2",
@@ -65,6 +66,7 @@ def generate_launch_description():
                 'publish_frame': LaunchConfiguration('publish_frame'),
                 'viz_poly': LaunchConfiguration('viz_poly'),
                 'local_prompt': LaunchConfiguration('local_prompt'),
+                'buffer_free': LaunchConfiguration('buffer_free')
             }],
             output="screen"
         ),
