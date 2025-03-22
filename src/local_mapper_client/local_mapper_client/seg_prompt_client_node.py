@@ -26,7 +26,7 @@ class SegPromptClient(Node):
             Image,
             'd435_image',
             self.image_callback,
-            1
+            10
         )
         self.mask_subscriber = self.create_subscription(            # Feedback subscriber (receives segmentation mask updates)
             BoolImage,

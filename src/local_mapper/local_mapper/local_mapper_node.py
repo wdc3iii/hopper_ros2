@@ -48,11 +48,11 @@ class LocalMapperNode(Node):
 
         # ROS publishers
         self.pub_polytopes = self.create_publisher(PolytopeArray, 'free_polytopes', 10)     # Publishes free space polytopes
-        self.pub_frame = self.create_publisher(Image, 'd435_image', 1)                      # Publishes rgb images
-        self.pub_mask = self.create_publisher(BoolImage, 'seg_mask', 1)                     # Publishes segmentation masks
-        self.pc_pub = self.create_publisher(PointCloud2, 'd435_pointcloud', 1)              # Published pointcloud
-        self.occ_pub = self.create_publisher(OccupancyGrid, 'occ_grid', 1)                  # Publishes occupancy grid
-        self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)               # Publishes polytope visualization
+        self.pub_frame = self.create_publisher(Image, 'd435_image', 10)                      # Publishes rgb images
+        self.pub_mask = self.create_publisher(BoolImage, 'seg_mask', 10)                     # Publishes segmentation masks
+        self.pc_pub = self.create_publisher(PointCloud2, 'd435_pointcloud', 10)              # Published pointcloud
+        self.occ_pub = self.create_publisher(OccupancyGrid, 'occ_grid', 10)                  # Publishes occupancy grid
+        self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 10)               # Publishes polytope visualization
 
         # ROS Subscribers
         self.sub_click = self.create_subscription(

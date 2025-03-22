@@ -1,4 +1,4 @@
-# ROS2 Local Mapping Package for ARCHER
+#ros2 run local_mapper_client seg_prompt_client_node ROS2 Local Mapping Package for ARCHER
 
 This pacakge implements a sensing-based local mapping package using a combination of Intel's t265 tracking camera and d435 depth camera. 
 

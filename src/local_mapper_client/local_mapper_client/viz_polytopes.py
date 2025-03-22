@@ -13,14 +13,14 @@ class VizPolytopes(Node):
         super().__init__('fake_poly_node')
 
         # Create visualization publisher
-        self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 1)
+        self.poly_viz_pub = self.create_publisher(MarkerArray, 'viz_poly', 10)
 
         # Create polytope subscriber
         self.sub_polytope = self.create_subscription(
             PolytopeArray,
             'free_polytopes',
             self.polytope_callback,
-            1
+            10
         )
         self.get_logger().info("Initialized Viz Polytope node.")
 
