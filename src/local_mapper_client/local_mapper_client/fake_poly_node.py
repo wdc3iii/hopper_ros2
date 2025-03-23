@@ -71,7 +71,7 @@ class FakePolyNode(Node):
         """Time callback to publish polytopes"""
         self.publisher_.publish(self.msg)
         self.get_logger().info(f'Publishing Polytopes')
-        self.counter += 1
+        # self.counter += 1
 
 
 def main(args=None):
